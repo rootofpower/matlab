@@ -6,6 +6,11 @@ close all;
 clear;
 clc;
 
+% Додаємо шляхи до директорій з методами
+addpath('../src/nonlinear');
+addpath('../src/linear');
+addpath('../src/approximation');
+
 fprintf('====== ТЕСТУВАННЯ ЧИСЕЛЬНИХ МЕТОДІВ ======\n\n');
 
 %% 1. ТЕСТУВАННЯ МЕТОДІВ ДЛЯ НЕЛІНІЙНИХ РІВНЯНЬ
@@ -201,5 +206,10 @@ for i = 1:length(degrees)
     xlabel('x');
     ylabel('y');
 end
+
+% Видаляємо шляхи до директорій після завершення
+rmpath('../src/nonlinear');
+rmpath('../src/linear');
+rmpath('../src/approximation');
 
 fprintf('\n====== ЗАВЕРШЕННЯ ТЕСТУВАННЯ ======\n'); 
