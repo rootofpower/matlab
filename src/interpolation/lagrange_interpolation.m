@@ -8,7 +8,7 @@ function [y_interp, L] = lagrange_interpolation(x, y, x_interp)
     %
     % Вихідні параметри:
     % y_interp - масив значень поліному в точках x_interp
-    % L - матриця базисних поліномів Лагранжа (опціонально)
+    % L - коефіцієнти поліному Лагранжа (опціонально)
     
     % Перевірка вхідних даних
     if length(x) ~= length(y)
@@ -18,47 +18,26 @@ function [y_interp, L] = lagrange_interpolation(x, y, x_interp)
     n = length(x);
     m = length(x_interp);
     
-    % Ініціалізація масиву для результатів
-    y_interp = zeros(1, m);
+    % Ініціалізація коефіцієнтів поліному
+    L = zeros(1, n);
     
-    % Обчислення значень поліному в кожній точці x_interp
-    for i = 1:m
-        xi = x_interp(i);
-        sum = 0;
+    % Обчислення коефіцієнтів поліному Лагранжа
+    for i = 1:n
+        up = 1;
+        down = 1;
         
-        % Обчислення суми базисних поліномів
         for j = 1:n
-            term = y(j);
-            
-            % Обчислення базисного поліному
-            for k = 1:n
-                if k ~= j
-                    term = term * (xi - x(k)) / (x(j) - x(k));
-                end
-            end
-            
-            sum = sum + term;
-        end
-        
-        y_interp(i) = sum;
-    end
-    
-    % Якщо потрібно, обчислюємо базисні поліноми
-    if nargout > 1
-        L = zeros(n, m);
-        for j = 1:n
-            for i = 1:m
-                xi = x_interp(i);
-                term = 1;
-                
-                for k = 1:n
-                    if k ~= j
-                        term = term * (xi - x(k)) / (x(j) - x(k));
-                    end
-                end
-                
-                L(j, i) = term;
+            if i ~= j
+                down = down * (x(i) - x(j));
+                p = [1 (-1 * x(j))];
+                up = conv(up, p);
             end
         end
+        
+        % Додаємо внесок поточного вузла до загального поліному
+        L = L + ((up / down) * y(i));
     end
+    
+    % Обчислення значень поліному в точках x_interp
+    y_interp = polyval(L, x_interp);
 end 

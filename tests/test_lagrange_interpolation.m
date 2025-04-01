@@ -66,6 +66,12 @@ for f_idx = 1:length(test_functions)
     fprintf('Максимальна похибка: %.10e\n', error);
     fprintf('Час обчислення: %.6f сек\n', time);
     
+    % Виводимо коефіцієнти поліному
+    fprintf('\nКоефіцієнти поліному Лагранжа (від старшого до молодшого степеня):\n');
+    format rational;
+    disp(L);
+    format;
+    
     % Візуалізація результатів
     figure;
     plot(x_interp, y_exact, 'b-', 'LineWidth', 2, 'DisplayName', 'Вихідна функція');
