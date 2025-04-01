@@ -6,10 +6,23 @@ close all;
 clear;
 clc;
 
-% Додаємо шлях до директорії з методами інтегрування
+% Додаємо шляхи до директорій з методами інтегрування та утилітами
 addpath('../src/integration');
+addpath('../src/utils');
 
 fprintf('====== ТЕСТУВАННЯ МЕТОДІВ ЧИСЕЛЬНОГО ІНТЕГРУВАННЯ ======\n\n');
+
+%% ЗАВАНТАЖЕННЯ ВХІДНИХ ДАНИХ З ФАЙЛУ
+integration_data_file = '../data/input/integration_data.txt';
+
+% Перевіряємо наявність файлу і завантажуємо дані
+if exist(integration_data_file, 'file')
+    integration_data = read_input_data(integration_data_file);
+    fprintf('Завантажено дані для інтегрування з файлу.\n');
+else
+    integration_data = [];
+    fprintf('Файл з даними для інтегрування не знайдено. Використовуємо значення за замовчуванням.\n');
+end
 
 %% Тестові функції для інтегрування
 % Визначимо ряд функцій з відомими аналітичними інтегралами для порівняння точності
@@ -40,21 +53,44 @@ exact_integrals = {F1, F2, F3, F4};
 function_names = {name1, name2, name3, name4};
 
 %% Параметри для тестування
+% Значення за замовчуванням
 a = 0;      % Нижня межа інтегрування
 b = 2;      % Верхня межа інтегрування
-n_values = [10, 20, 50, 100, 200, 500, 1000]; % Різні кількості відрізків для тестування
+n = 100;    % Кількість відрізків за замовчуванням
+
+% Якщо є дані з файлу, використовуємо їх
+if ~isempty(integration_data) && isfield(integration_data, 'method') && ...
+   isfield(integration_data, 'a') && isfield(integration_data, 'b') && ...
+   isfield(integration_data, 'n')
+    
+    % Використовуємо перший рядок даних
+    a = integration_data.a(1);
+    b = integration_data.b(1);
+    n = integration_data.n(1);
+    fprintf('Використовуємо параметри з файлу: a=%.2f, b=%.2f, n=%d\n', a, b, n);
+end
+
+% Якщо є дані про функцію для інтегрування, використовуємо її
+if ~isempty(integration_data) && isfield(integration_data, 'function_id')
+    function_id = integration_data.function_id(1);
+    if function_id >= 1 && function_id <= 4
+        fprintf('Використовуємо функцію %d з файлу: %s\n', function_id, function_names{function_id});
+        test_functions = {test_functions{function_id}};
+        exact_integrals = {exact_integrals{function_id}};
+        function_names = {function_names{function_id}};
+    end
+end
 
 %% Ініціалізація масивів для зберігання результатів
 n_funcs = length(test_functions);
-n_n = length(n_values);
 
-errors_rectangle = zeros(n_funcs, n_n);
-errors_trapz = zeros(n_funcs, n_n);
-errors_simpson = zeros(n_funcs, n_n);
+errors_rectangle = zeros(1, n_funcs);
+errors_trapz = zeros(1, n_funcs);
+errors_simpson = zeros(1, n_funcs);
 
-time_rectangle = zeros(n_funcs, n_n);
-time_trapz = zeros(n_funcs, n_n);
-time_simpson = zeros(n_funcs, n_n);
+time_rectangle = zeros(1, n_funcs);
+time_trapz = zeros(1, n_funcs);
+time_simpson = zeros(1, n_funcs);
 
 %% Обчислення інтегралів та порівняння
 for f_idx = 1:n_funcs
@@ -65,81 +101,71 @@ for f_idx = 1:n_funcs
     fprintf('\n\nФункція %d: %s\n', f_idx, function_names{f_idx});
     fprintf('Точне значення інтегралу від %g до %g: %.10f\n', a, b, exact_value);
     fprintf('------------------------------------------------------------\n');
-    fprintf('Метод    | Кількість | Значення     | Абс. похибка | Час (сек)\n');
-    fprintf('         | відрізків | інтегралу    |              | \n');
+    fprintf('Метод    | Значення     | Абс. похибка | Час (сек)\n');
+    fprintf('         | інтегралу    |              | \n');
     fprintf('------------------------------------------------------------\n');
     
-    for n_idx = 1:n_n
-        n = n_values(n_idx);
-        
-        % Метод прямокутників
-        tic;
-        result_rect = rectangle_method(f, a, b, n);
-        time_rectangle(f_idx, n_idx) = toc;
-        errors_rectangle(f_idx, n_idx) = abs(result_rect - exact_value);
-        
-        fprintf('Прямокут.| %9d | %.10f | %.10e | %.6f\n', ...
-            n, result_rect, errors_rectangle(f_idx, n_idx), time_rectangle(f_idx, n_idx));
-        
-        % Метод трапецій
-        tic;
-        result_trapz = trapezoidal_method(f, a, b, n);
-        time_trapz(f_idx, n_idx) = toc;
-        errors_trapz(f_idx, n_idx) = abs(result_trapz - exact_value);
-        
-        fprintf('Трапецій | %9d | %.10f | %.10e | %.6f\n', ...
-            n, result_trapz, errors_trapz(f_idx, n_idx), time_trapz(f_idx, n_idx));
-        
-        % Метод Сімпсона
-        tic;
-        result_simpson = simpson_method(f, a, b, n);
-        time_simpson(f_idx, n_idx) = toc;
-        errors_simpson(f_idx, n_idx) = abs(result_simpson - exact_value);
-        
-        fprintf('Сімпсона | %9d | %.10f | %.10e | %.6f\n', ...
-            n, result_simpson, errors_simpson(f_idx, n_idx), time_simpson(f_idx, n_idx));
-        
-        fprintf('------------------------------------------------------------\n');
+    % Метод прямокутників
+    tic;
+    result_rect = rectangle_method(f, a, b, n);
+    time_rectangle(f_idx) = toc;
+    errors_rectangle(f_idx) = abs(result_rect - exact_value);
+    
+    fprintf('Прямокут.| %.10f | %.10e | %.6f\n', ...
+        result_rect, errors_rectangle(f_idx), time_rectangle(f_idx));
+
+    % Метод трапецій
+    tic;
+    result_trapz = trapezoidal_method(f, a, b, n);
+    time_trapz(f_idx) = toc;
+    errors_trapz(f_idx) = abs(result_trapz - exact_value);
+    
+    fprintf('Трапецій | %.10f | %.10e | %.6f\n', ...
+        result_trapz, errors_trapz(f_idx), time_trapz(f_idx));
+
+    % Метод Сімпсона
+    tic;
+    result_simpson = simpson_method(f, a, b, n);
+    time_simpson(f_idx) = toc;
+    errors_simpson(f_idx) = abs(result_simpson - exact_value);
+    
+    fprintf('Сімпсона | %.10f | %.10e | %.6f\n', ...
+        result_simpson, errors_simpson(f_idx), time_simpson(f_idx));
+    
+    fprintf('------------------------------------------------------------\n');
+    
+    % Візуалізація результатів
+    figure;
+    x = linspace(a, b, 1000);
+    y = f(x);
+    plot(x, y, 'b-', 'LineWidth', 2, 'DisplayName', 'Функція');
+    hold on;
+    
+    % Побудова точок для різних методів
+    x_points = linspace(a, b, n+1);
+    y_points = f(x_points);
+    
+    % Метод прямокутників
+    for i = 1:n
+        rectangle('Position', [x_points(i), 0, (b-a)/n, y_points(i)], ...
+                 'FaceColor', [1 0 0 0.2], 'EdgeColor', 'r');
     end
     
-    % Побудова графіків залежності помилки від кількості відрізків
-    figure;
-    loglog(n_values, errors_rectangle(f_idx, :), 'r.-', 'LineWidth', 2, 'MarkerSize', 15);
-    hold on;
-    loglog(n_values, errors_trapz(f_idx, :), 'g.-', 'LineWidth', 2, 'MarkerSize', 15);
-    loglog(n_values, errors_simpson(f_idx, :), 'b.-', 'LineWidth', 2, 'MarkerSize', 15);
+    % Метод трапецій
+    plot(x_points, y_points, 'g-o', 'MarkerSize', 5, 'DisplayName', 'Точки трапецій');
+    
+    % Метод Сімпсона
+    plot(x_points, y_points, 'm-o', 'MarkerSize', 5, 'DisplayName', 'Точки Сімпсона');
+    
     grid on;
-    xlabel('Кількість відрізків (n)');
-    ylabel('Абсолютна похибка');
-    title(['Залежність похибки від кількості відрізків для функції ', function_names{f_idx}]);
-    legend('Метод прямокутників', 'Метод трапецій', 'Метод Сімпсона');
-    set(gca, 'XTick', n_values);
+    legend('Location', 'best');
+    title(['Візуалізація методів інтегрування для функції ', function_names{f_idx}]);
+    xlabel('x');
+    ylabel('y');
 end
 
-%% Порівняння швидкості збіжності різних методів
-% Для кожної функції побудуємо графік порядку збіжності (log-log графік)
-figure;
-f_idx = 1;  % Можна змінити на іншу функцію
-loglog(n_values, errors_rectangle(f_idx, :), 'r.-', 'LineWidth', 2, 'MarkerSize', 15);
-hold on;
-loglog(n_values, errors_trapz(f_idx, :), 'g.-', 'LineWidth', 2, 'MarkerSize', 15);
-loglog(n_values, errors_simpson(f_idx, :), 'b.-', 'LineWidth', 2, 'MarkerSize', 15);
-
-% Для порівняння: теоретичний порядок збіжності
-c = 0.1;  % Константа для зсуву графіка
-loglog(n_values, c ./ n_values.^2, 'r--', 'LineWidth', 1);
-loglog(n_values, c ./ n_values.^2, 'g--', 'LineWidth', 1);
-loglog(n_values, c ./ n_values.^4, 'b--', 'LineWidth', 1);
-
-grid on;
-xlabel('Кількість відрізків (n)');
-ylabel('Абсолютна похибка');
-title(['Порядок збіжності різних методів для функції ', function_names{f_idx}]);
-legend('Метод прямокутників', 'Метод трапецій', 'Метод Сімпсона', ...
-       'O(h^2)', 'O(h^2)', 'O(h^4)', 'Location', 'southwest');
-set(gca, 'XTick', n_values);
-
-% Видаляємо шлях до директорії з методами інтегрування після завершення
+% Видаляємо шляхи до директорій після завершення
 rmpath('../src/integration');
+rmpath('../src/utils');
 
 fprintf('\n====== ЗАВЕРШЕННЯ ТЕСТУВАННЯ ======\n'); 

@@ -1,0 +1,11 @@
+method, a, b, n
+rectangle, 0, 2, 100
+trapezoidal, 0, 2, 100
+simpson, 0, 2, 100
+
+# Функція для інтегрування: 1 - x^2, 2 - sin(x), 3 - e^x, 4 - x*sin(x^2)
+function_id
+1
+2
+3
+4

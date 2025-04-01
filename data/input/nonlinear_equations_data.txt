@@ -1,0 +1,5 @@
+method, a, b, x0, x1, tol, max_iter
+bisection, 1, 2, 0, 0, 1e-6, 100
+falsi, 1, 2, 0, 0, 1e-6, 100
+secant, 0, 0, 1, 1.5, 1e-6, 100
+newton, 0, 0, 1.5, 0, 1e-6, 100 
